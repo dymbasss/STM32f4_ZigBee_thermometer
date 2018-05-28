@@ -1,0 +1,13 @@
+{
+    "files.associations": {
+        "stm32f4xx.h": "c",
+        "pwm.h": "c",
+        "stm32f4xx_gpio.h": "c",
+        "stm32f4xx_conf.h": "c",
+        "zb_mrf24j40.h": "c",
+        "zb_g_context.h": "c",
+        "zb_cortexm4_exti.h": "c",
+        "zb_common.h": "c",
+        "zdo_header_for_button.h": "c"
+    }
+}
