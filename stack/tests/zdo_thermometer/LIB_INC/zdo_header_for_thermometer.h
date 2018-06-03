@@ -12,8 +12,8 @@
 
 #define B_MAIN  GPIO_Pin_0
 
-void set_send_temperature(zb_callback_t func);
-zb_uint16_t set_value_temperature(void);
+void set_temperature_for_send(zb_callback_t func);
+zb_uint8_t value_temperature_broadcast(void);
 
 void init_adc(void);
 void init_timer(void);

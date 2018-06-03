@@ -1,6 +1,6 @@
-#include "zdo_header_for_thermometer.h"
+#include "LIB_INC/zdo_header_for_thermometer.h"
 
-void calculation_of_temperature(zb_uint8_t param);
+void calculation_of_temperature(void);
 
 static volatile zb_bool_t button_state = ZB_FALSE;
 static zb_uint8_t time;
@@ -33,7 +33,7 @@ void init_timer(void)
   NVIC_Init(&t_nvic_init_struct);  
 }
 
-void state_tim2_cmd(zb_uint8_t state)
+void on_off_timer(zb_uint8_t state) //
 {
   switch(state)
     {
@@ -46,13 +46,13 @@ void state_tim2_cmd(zb_uint8_t state)
     }
 }
 
-void working_hours(zb_uint8_t value)
+void timer_run_time(zb_uint8_t value)
 {
   if(value >= 5)
     {
       time = 0;
       button_state = !button_state;
-      state_tim2_cmd(0);
+      on_off_timer(0);
     }
   
 }
@@ -153,36 +153,41 @@ void init_led(void)
 
 //-----------------------------------------------------------------------
 
-zb_uint16_t set_value_temperature(void)
+void calculation_of_temperature(void)
 {
+  // ADC Conversion to read temperature sensor
+  // Temperature (in °C) = ((Vsense – V25) / Avg_Slope) + 25
+  // Vsense = Voltage Reading From Temperature Sensor
+  // V25 = Voltage at 25°C, for STM32F407 = 0.76V
+  // Avg_Slope = 2.5mV/°C
+      
+  zb_uint16_t V_sense = readADC1();
+      
+  value_temperature = V_sense;
+  value_temperature *= 3; // The voltage with respect to which the comparison is made (my value - 3V, measured by a voltage sensor)
+  value_temperature /= 4095; //Reading in V 
+  value_temperature -= (float)0.760; // Subtract the reference voltage at 25°C
+  value_temperature /= (float)0.0025; // Divide by slope 2.5mV
+  value_temperature += (float)25.0; // Add the 25°C
+  value_temperature -= (float)11.0; // Calibration_Value for measuring absolute temperature
+  // out  value_temperature +- 1.5°C
+}
+
+zb_uint8_t value_temperature_broadcast(void)
+{ 
   return value_temperature;
 }
 
-void set_send_temperature(zb_callback_t func)
+void set_temperature_for_send(zb_callback_t func)
 {
   temperature_callback = func;
 }
 
-void calculation_of_temperature(zb_uint8_t param)
+void schedule_callback(zb_uint8_t param)
 { 
   if(button_state == ZB_TRUE)
     {
-      // ADC Conversion to read temperature sensor
-      // Temperature (in °C) = ((Vsense – V25) / Avg_Slope) + 25
-      // Vsense = Voltage Reading From Temperature Sensor
-      // V25 = Voltage at 25°C, for STM32F407 = 0.76V
-      // Avg_Slope = 2.5mV/°C
-      
-      zb_uint16_t V_sense = readADC1();
-      
-      value_temperature = V_sense;
-      value_temperature *= 3; // The voltage with respect to which the comparison is made (my value - 3V, measured by a voltage sensor)
-      value_temperature /= 4095; //Reading in V 
-      value_temperature -= (float)0.760; // Subtract the reference voltage at 25°C
-      value_temperature /= (float)0.0025; // Divide by slope 2.5mV
-      value_temperature += (float)25.0; // Add the 25°C
-      value_temperature -= (float)11.0; // Calibration_Value for measuring absolute temperature
-      // out  value_temperature +- 1.5°C
+      calculation_of_temperature();
       ZB_SCHEDULE_ALARM(temperature_callback, param, ZB_MILLISECONDS_TO_BEACON_INTERVAL(100));
     }
 }
@@ -200,7 +205,7 @@ void EXTI0_IRQHandler(void)
       if(cycle == 50)
 	{
 	  button_state = !button_state;
-	  state_tim2_cmd(1);   
+	  on_off_timer(1);   
 	  break;
 	}
       cycle++;
@@ -213,10 +218,10 @@ void TIM2_IRQHandler(void)
   if (TIM_GetITStatus(TIM2, TIM_IT_Update) != RESET)
     {
       TIM_ClearITPendingBit(TIM2, TIM_IT_Update);
-      calculation_of_temperature(0);
+      schedule_callback(0);
 
       time++;
-      working_hours(time);
+      timer_run_time(time);
     }
 }
 

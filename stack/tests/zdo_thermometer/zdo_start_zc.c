@@ -46,11 +46,12 @@
 PURPOSE: Test for ZC application written using ZDO.
 */
 
-#include "zdo_header_for_lcd.h"
+#include "LIB_INC/zdo_header_for_lcd.h"
 
 zb_ieee_addr_t g_zc_addr = {0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa};
 
 static void data_indication(zb_uint8_t param);
+static void data_for_lcd(zb_uint8_t *ptr);
 
 MAIN()
 {
@@ -117,9 +118,27 @@ static void data_indication(zb_uint8_t param)
 
   /* Remove APS header from the packet */
   ZB_APS_HDR_CUT_P(asdu, ptr);
-
-  data_for_lcd(ptr);
+  
+  if(ptr[KEY_BYTE] == 0x54)
+    {
+      data_for_lcd(ptr);
+    }
+  
   zb_free_buf(asdu);   
+}
+
+void data_for_lcd(zb_uint8_t *ptr)
+{
+  zb_uint8_t info[] = "temperature:";
+  zb_uint8_t N = sizeof(info) / sizeof(info[0]);
+  zb_uint8_t *ptr_string = (zb_uint8_t*)malloc(1 * sizeof(zb_uint8_t));
+  
+  lcd_goto(1, 0);
+  lcd_print(info);
+  
+  lcd_goto(1, N);
+  sprintf(ptr_string, "%d", ptr[DATA_BYTE]);
+  lcd_print(ptr_string);
 }
 
 

@@ -9,7 +9,9 @@
 #include "zb_zdo.h"
 #include "stm32f4xx_i2c.h"
 
-#define FIRST_BYTE  0
+#define KEY_BYTE  0
+#define DATA_BYTE 1
+
 #define LCD_ADDR  0x07 // Addres
 #define LCD_1602 // Type LCD
 
@@ -45,7 +47,6 @@ void lcd_command(zb_uint8_t); // send command in LCD
 void lcd_data(zb_uint8_t); // send data in LCD
 
 void change_color_RGB(zb_uint16_t);
-void data_for_lcd(zb_uint8_t *);
 void init_pin(void);
 void init_led(void);
 void init_i2c(void);

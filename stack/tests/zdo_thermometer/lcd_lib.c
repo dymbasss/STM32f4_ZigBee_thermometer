@@ -1,4 +1,4 @@
-#include "zdo_header_for_lcd.h"
+#include "LIB_INC/zdo_header_for_lcd.h"
 
 static zb_uint8_t backlightState = 1;
 
@@ -71,28 +71,6 @@ void delay_ms(zb_uint16_t ms)
     }
 }
 
-void change_color_RGB(zb_uint16_t ptr)
-{
-  zb_uint16_t RGB[] = {GPIO_Pin_14, GPIO_Pin_12, GPIO_Pin_15};
-  
-  GPIO_ResetBits(GPIOD, GPIO_Pin_14 | GPIO_Pin_12 | GPIO_Pin_15);
-  
-  if (ptr >= 40) // if 40°C                               
-    {
-      GPIO_SetBits(GPIOD, RGB[0]);
-    }
-  
-  else if (ptr >= 20) // if 20°C
-    {
-      GPIO_SetBits(GPIOD, RGB[1]);
-    }
-
-  else if (ptr >= 10) // if 10°C
-    {
-      GPIO_SetBits(GPIOD, RGB[2]);
-    }
-}
-
 void lcd_init(void)
 {
   lcd_command(0x33);
@@ -106,21 +84,6 @@ void lcd_init(void)
   
   lcd_command(0x06); // if writing, | -> on left
   lcd_command(0x0C); // on lcd
-}
-
-void data_for_lcd(zb_uint8_t *ptr)
-{
-  zb_uint8_t info[] = "temperature:";
-  zb_uint8_t N = sizeof(info) / sizeof(info[0]);
-  zb_uint8_t ptr_string[2];
-  
-  change_color_RGB(ptr[FIRST_BYTE]);
-  lcd_goto(1, 0);
-  lcd_print(info);
-  
-  lcd_goto(1, N);
-  sprintf(ptr_string, "%d", *ptr);
-  lcd_print(ptr_string);
 }
 
 void lcd_goto(zb_uint8_t row, zb_uint8_t col)

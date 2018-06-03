@@ -55,10 +55,10 @@ FNAME2 = zdo_start_zr
 FNAME3 = lcd_lib
 FNAME4 = thermometer_lib
 
-SRCS1 = $(FNAME1).c
+SRCS1 = $(FNAME1).c 
 OBJS1 = ${SRCS1:.c=.o}
-SRCS2 = $(FNAME2).c
-OBJS2 = ${SRCS2:.c=.o}
+SRCS2 = $(FNAME2).c 
+OBJS2 = ${SRCS2:.c=.o} 
 
 SRCS3 = $(FNAME3).c
 OBJS3 = ${SRCS3:.c=.o}

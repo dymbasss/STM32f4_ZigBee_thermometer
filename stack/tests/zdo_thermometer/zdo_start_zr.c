@@ -46,12 +46,13 @@
 PURPOSE: Test for ZC application written using ZDO.
 */
 
-#include "zdo_header_for_thermometer.h"
+#include "LIB_INC/zdo_header_for_thermometer.h"
 
 void zr_send_data(zb_uint8_t param);
-void zr_package_formation(zb_uint8_t param);
+void zr_send_temperature(zb_uint8_t param);
 
 zb_ieee_addr_t g_zr_addr = {0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb};
+zb_uint8_t key = 0x54;
 
 MAIN()
 {
@@ -86,7 +87,7 @@ MAIN()
     init_led();
   }
 
-  set_send_temperature(zr_package_formation);
+  set_temperature_for_send(zr_send_temperature);
 
   if (zdo_dev_start() != RET_OK)
     {
@@ -131,18 +132,19 @@ void zr_send_data(zb_uint8_t param)
   ZB_SCHEDULE_CALLBACK(zb_apsde_data_request, ZB_REF_FROM_BUF(buf));  
 }
 
-void zr_package_formation(zb_uint8_t param)
+void zr_send_temperature(zb_uint8_t param)
 {
   if (param == 0)
     {
-      ZB_GET_OUT_BUF_DELAYED(zr_package_formation);
+      ZB_GET_OUT_BUF_DELAYED(zr_send_temperature);
     }
   else
     {
       zb_buf_t *buf = ZB_BUF_FROM_REF(param);
       zb_uint8_t *ptr = ZB_BUF_BEGIN(buf);
-      ZB_BUF_INITIAL_ALLOC(buf, 1, ptr);
-      ptr[0] = set_value_temperature();
+      ZB_BUF_INITIAL_ALLOC(buf, 2, ptr);
+      ptr[0] = key;
+      ptr[1] = value_temperature_broadcast();
       zr_send_data(param);
     }
 }
