@@ -8,9 +8,12 @@
 #include "zb_aps.h"
 #include "zb_zdo.h"
 #include "stm32f4xx_i2c.h"
+#include "stm32f4xx_tim.h"
 
-#define KEY_BYTE  0
+#define COMMAND_UPDATE_TEMPERATURE 0x54
 #define DATA_BYTE 1
+
+#define B_MAIN  GPIO_Pin_0
 
 #define LCD_ADDR  0x07 // Addres
 #define LCD_1602 // Type LCD
@@ -46,9 +49,11 @@ void lcd_send(zb_uint8_t); // send value in LCD
 void lcd_command(zb_uint8_t); // send command in LCD
 void lcd_data(zb_uint8_t); // send data in LCD
 
+void set_request_for_send_temperature(zb_callback_t);
+
 void change_color_RGB(zb_uint16_t);
 void init_pin(void);
-void init_led(void);
+void init_button(void);
 void init_i2c(void);
 
 #endif // !ZB_HEADER_FOR_LCD_H

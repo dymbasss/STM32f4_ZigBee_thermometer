@@ -10,15 +10,14 @@
 #include "stm32f4xx_adc.h"
 #include "stm32f4xx_tim.h"
 
-#define B_MAIN  GPIO_Pin_0
+#define COMMAND_UPDATE_TEMPERATURE 0x54 
 
-void set_temperature_for_send(zb_callback_t func);
+void set_temperature_for_send(zb_callback_t);
+void schedule_callback(zb_uint8_t);
 zb_uint8_t value_temperature_broadcast(void);
 
 void init_adc(void);
 void init_timer(void);
-void init_button(void);
-void init_led(void);
 
 typedef enum
   {

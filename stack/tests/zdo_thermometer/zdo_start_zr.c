@@ -49,10 +49,10 @@ PURPOSE: Test for ZC application written using ZDO.
 #include "LIB_INC/zdo_header_for_thermometer.h"
 
 void zr_send_data(zb_uint8_t param);
+void zr_data_indication(zb_uint8_t param);
 void zr_send_temperature(zb_uint8_t param);
 
 zb_ieee_addr_t g_zr_addr = {0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb};
-zb_uint8_t key = 0x54;
 
 MAIN()
 {
@@ -81,10 +81,9 @@ MAIN()
     zb_address_update(g_zr_addr, 0, ZB_FALSE, &ref); // legacy
     ZB_IEEE_ADDR_COPY(ZB_PIB_EXTENDED_ADDRESS(), &g_zr_addr);
     ZB_AIB().aps_channel_mask = (1l << 22);
+    
     init_adc();
     init_timer();
-    init_button();
-    init_led();
   }
 
   set_temperature_for_send(zr_send_temperature);
@@ -109,9 +108,24 @@ void zb_zdo_startup_complete(zb_uint8_t param)
 
   if (buf->u.hdr.status == 0)
     {
-      TRACE_MSG(TRACE_APS1, "Device STARTED OK", (FMT__0));
+      zb_af_set_data_indication(zr_data_indication);
     }
     zb_free_buf(buf);
+}
+
+void zr_data_indication(zb_uint8_t param)
+{
+  zb_uint8_t *ptr;
+  zb_buf_t *buf = (zb_buf_t *)ZB_BUF_FROM_REF(param);
+
+  /* Remove APS header from the packet */
+  ZB_APS_HDR_CUT_P(buf, ptr);
+  
+  if(*ptr == COMMAND_UPDATE_TEMPERATURE)
+    {
+      ZB_BUF_CUT_LEFT(buf, 2, ptr);
+      schedule_callback(param);
+    }  
 }
 
 void zr_send_data(zb_uint8_t param)
@@ -142,8 +156,8 @@ void zr_send_temperature(zb_uint8_t param)
     {
       zb_buf_t *buf = ZB_BUF_FROM_REF(param);
       zb_uint8_t *ptr = ZB_BUF_BEGIN(buf);
-      ZB_BUF_INITIAL_ALLOC(buf, 2, ptr);
-      ptr[0] = key;
+      ZB_BUF_INITIAL_ALLOC(buf, 2, ptr);  
+      ptr[0] = COMMAND_UPDATE_TEMPERATURE;
       ptr[1] = value_temperature_broadcast();
       zr_send_data(param);
     }

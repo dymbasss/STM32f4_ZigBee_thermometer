@@ -50,7 +50,9 @@ PURPOSE: Test for ZC application written using ZDO.
 
 zb_ieee_addr_t g_zc_addr = {0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa};
 
-static void data_indication(zb_uint8_t param);
+void zc_data_indication(zb_uint8_t param);
+void zc_send_data(zb_uint8_t param);
+void zc_request_temperature(zb_uint8_t param);
 static void data_for_lcd(zb_uint8_t *ptr);
 
 MAIN()
@@ -80,10 +82,13 @@ MAIN()
   /* let's always be a coordinator */
   ZB_AIB().aps_designated_coordinator = 1;
   ZB_AIB().aps_channel_mask = (1l << 22);
+  
   init_pin();
-  init_led();
+  init_button();
   init_i2c();
   lcd_init();
+
+  set_request_for_send_temperature(zc_request_temperature);
   
   if (zdo_dev_start() != RET_OK)
   {
@@ -104,34 +109,68 @@ void zb_zdo_startup_complete(zb_uint8_t param)
   zb_buf_t *buf = ZB_BUF_FROM_REF(param);
   
   if (buf->u.hdr.status == 0)
-  {
-     zb_af_set_data_indication(data_indication);
-  }
-    zb_free_buf(buf);
+    {
+      zb_af_set_data_indication(zc_data_indication);
+    }
   
+  zb_free_buf(buf); 
 }
 
-static void data_indication(zb_uint8_t param)
+void zc_data_indication(zb_uint8_t param)
 {
   zb_uint8_t *ptr;
-  zb_buf_t *asdu = (zb_buf_t *)ZB_BUF_FROM_REF(param);
+  zb_buf_t *buf = (zb_buf_t *)ZB_BUF_FROM_REF(param);
 
   /* Remove APS header from the packet */
-  ZB_APS_HDR_CUT_P(asdu, ptr);
+  ZB_APS_HDR_CUT_P(buf, ptr);
   
-  if(ptr[KEY_BYTE] == 0x54)
+  if(*ptr == COMMAND_UPDATE_TEMPERATURE)
     {
       data_for_lcd(ptr);
     }
   
-  zb_free_buf(asdu);   
+  zb_free_buf(buf);   
+}
+
+void zc_send_data(zb_uint8_t param)
+{
+  zb_buf_t *buf = (zb_buf_t*)ZB_BUF_FROM_REF(param);
+  zb_apsde_data_req_t *req;
+    
+  req = ZB_GET_BUF_TAIL(buf, sizeof(zb_apsde_data_req_t));
+  req->dst_addr.addr_short = 1;
+  req->addr_mode = ZB_APS_ADDR_MODE_16_ENDP_PRESENT;
+  req->tx_options = ZB_APSDE_TX_OPT_ACK_TX;
+  req->radius = 1;
+  req->profileid = 2;
+  req->src_endpoint = 10;
+  req->dst_endpoint = 10;
+  buf->u.hdr.handle = 0x11;
+  
+  ZB_SCHEDULE_CALLBACK(zb_apsde_data_request, ZB_REF_FROM_BUF(buf));  
+}
+
+void zc_request_temperature(zb_uint8_t param)
+{
+  if (param == 0)
+    {
+      ZB_GET_OUT_BUF_DELAYED(zc_request_temperature);
+    }
+  else
+    {
+      zb_buf_t *buf = ZB_BUF_FROM_REF(param);
+      zb_uint8_t *ptr = ZB_BUF_BEGIN(buf);
+      ZB_BUF_INITIAL_ALLOC(buf, 1, ptr);  
+      ptr[0] = COMMAND_UPDATE_TEMPERATURE;
+      zc_send_data(param);
+    }
 }
 
 void data_for_lcd(zb_uint8_t *ptr)
 {
   zb_uint8_t info[] = "temperature:";
   zb_uint8_t N = sizeof(info) / sizeof(info[0]);
-  zb_uint8_t *ptr_string = (zb_uint8_t*)malloc(1 * sizeof(zb_uint8_t));
+  zb_uint8_t ptr_string[1];
   
   lcd_goto(1, 0);
   lcd_print(info);

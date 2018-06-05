@@ -1,20 +1,11 @@
 #include "LIB_INC/zdo_header_for_lcd.h"
 
-static zb_uint8_t backlightState = 1;
+void schedule_callback(zb_uint8_t param);
 
-void init_led(void)
-{
-  GPIO_InitTypeDef  led_init_struct;
-  
-  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOD, ENABLE);
-  
-  led_init_struct.GPIO_Pin = GPIO_Pin_12 | GPIO_Pin_13 | GPIO_Pin_14;
-  led_init_struct.GPIO_Mode = GPIO_Mode_OUT;
-  led_init_struct.GPIO_OType = GPIO_OType_PP;
-  led_init_struct.GPIO_PuPd = GPIO_PuPd_NOPULL;
-  led_init_struct.GPIO_Speed = GPIO_Speed_2MHz;
-  GPIO_Init(GPIOD, &led_init_struct);
-}
+static zb_uint8_t backlightState = 1;
+static volatile zb_bool_t button_state;
+
+zb_callback_t request_temperature_callback;
 
 //------------------------------------------------------------------------
 
@@ -31,7 +22,6 @@ void init_pin(void)
   pin_init_struct.GPIO_PuPd = GPIO_PuPd_UP;
   pin_init_struct.GPIO_Speed = GPIO_Speed_50MHz;
   GPIO_Init(GPIOB, &pin_init_struct);
-  
   GPIO_PinAFConfig(GPIOB, GPIO_PinSource6, GPIO_AF_I2C1);
   GPIO_PinAFConfig(GPIOB, GPIO_PinSource7, GPIO_AF_I2C1);
 }
@@ -51,11 +41,74 @@ void init_i2c(void)
   i2c_init_struct.I2C_Ack = I2C_Ack_Enable;
   i2c_init_struct.I2C_AcknowledgedAddress = I2C_AcknowledgedAddress_7bit;
   I2C_Init(I2C1, &i2c_init_struct);
-
   I2C_Cmd(I2C1, ENABLE);
 }
 
 //-----------------------------------------------------------------------
+
+void init_button(void)
+{
+  GPIO_InitTypeDef b_init_struct;
+  NVIC_InitTypeDef b_nvic_init_struct;
+  EXTI_InitTypeDef b_exti_init_struct;
+  
+  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
+
+  b_init_struct.GPIO_Pin = B_MAIN;
+  b_init_struct.GPIO_Mode = GPIO_Mode_IN;
+  b_init_struct.GPIO_OType = GPIO_OType_PP;
+  b_init_struct.GPIO_Speed = GPIO_Speed_2MHz;
+  b_init_struct.GPIO_PuPd = GPIO_PuPd_DOWN;
+  GPIO_Init(GPIOA, &b_init_struct);
+
+  RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
+  
+  SYSCFG_EXTILineConfig(EXTI_PortSourceGPIOA, EXTI_PinSource0);
+  b_exti_init_struct.EXTI_Line = EXTI_Line0;
+  b_exti_init_struct.EXTI_LineCmd = ENABLE;
+  b_exti_init_struct.EXTI_Mode = EXTI_Mode_Interrupt;
+  b_exti_init_struct.EXTI_Trigger = EXTI_Trigger_Rising;
+  EXTI_Init(&b_exti_init_struct);
+	    
+  b_nvic_init_struct.NVIC_IRQChannel = EXTI0_IRQn;
+  b_nvic_init_struct.NVIC_IRQChannelPreemptionPriority = 0x00;
+  b_nvic_init_struct.NVIC_IRQChannelSubPriority = 0x00;
+  b_nvic_init_struct.NVIC_IRQChannelCmd = ENABLE;
+  NVIC_Init(&b_nvic_init_struct);
+}
+
+void EXTI0_IRQHandler(void)
+{
+  zb_uint8_t read_pin_0, cycle;
+  EXTI_ClearITPendingBit(EXTI_Line0);
+  read_pin_0 = GPIO_ReadInputDataBit(GPIOA, B_MAIN);
+
+  while(read_pin_0 == 1)
+    {
+      read_pin_0 = GPIO_ReadInputDataBit(GPIOA, B_MAIN);
+      
+      if(cycle == 50)
+	{
+	  schedule_callback(0);
+	  
+	  break;
+	}
+      cycle++;
+    }
+  cycle = 0;
+}
+
+//-----------------------------------------------------------------------
+
+void set_request_for_send_temperature(zb_callback_t func)
+{
+  request_temperature_callback = func;
+}
+
+void schedule_callback(zb_uint8_t param)
+{
+  ZB_SCHEDULE_ALARM(request_temperature_callback, param, ZB_MILLISECONDS_TO_BEACON_INTERVAL(100));
+}
 
 void delay_ms(zb_uint16_t ms)
 {
