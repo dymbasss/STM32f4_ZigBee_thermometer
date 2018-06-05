@@ -124,7 +124,7 @@ void zr_data_indication(zb_uint8_t param)
   if(*ptr == COMMAND_UPDATE_TEMPERATURE)
     {
       ZB_BUF_CUT_LEFT(buf, 2, ptr);
-      schedule_callback(param);
+      schedule_callback_update_temperature(param);
     }  
 }
 

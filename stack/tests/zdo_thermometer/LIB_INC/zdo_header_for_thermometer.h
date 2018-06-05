@@ -13,7 +13,7 @@
 #define COMMAND_UPDATE_TEMPERATURE 0x54 
 
 void set_temperature_for_send(zb_callback_t);
-void schedule_callback(zb_uint8_t);
+void schedule_callback_update_temperature(zb_uint8_t);
 zb_uint8_t value_temperature_broadcast(void);
 
 void init_adc(void);

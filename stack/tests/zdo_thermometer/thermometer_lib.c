@@ -51,7 +51,7 @@ void timer_run_time(zb_uint8_t value)
   if(value == 30) // 30 seconds
     {
       time = 0;
-      schedule_callback(0);
+      schedule_callback_update_temperature(0);
     } 
 }
 
@@ -120,7 +120,7 @@ void set_temperature_for_send(zb_callback_t func)
   temperature_callback = func;
 }
 
-void schedule_callback(zb_uint8_t param)
+void schedule_callback_update_temperature(zb_uint8_t param)
 { 
   calculation_of_temperature();
   ZB_SCHEDULE_ALARM(temperature_callback, param, ZB_MILLISECONDS_TO_BEACON_INTERVAL(100));
