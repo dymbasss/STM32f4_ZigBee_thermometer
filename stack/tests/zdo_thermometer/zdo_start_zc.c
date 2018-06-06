@@ -47,6 +47,7 @@ PURPOSE: Test for ZC application written using ZDO.
 */
 
 #include "LIB_INC/zdo_header_for_lcd.h"
+#include "LIB_INC/zdo_header_for_button.h"
 
 zb_ieee_addr_t g_zc_addr = {0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa};
 
@@ -161,7 +162,7 @@ void zc_request_temperature(zb_uint8_t param)
       zb_buf_t *buf = ZB_BUF_FROM_REF(param);
       zb_uint8_t *ptr = ZB_BUF_BEGIN(buf);
       ZB_BUF_INITIAL_ALLOC(buf, 1, ptr);  
-      ptr[0] = COMMAND_UPDATE_TEMPERATURE;
+      ptr[0] = COMMAND_REQUEST_UPDATE_TEMPERATURE;
       zc_send_data(param);
     }
 }
@@ -179,6 +180,7 @@ void data_for_lcd(zb_uint8_t *ptr)
   sprintf(ptr_string, "%d", ptr[DATA_BYTE]);
   lcd_print(ptr_string);
 }
+
 
 
 

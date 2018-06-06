@@ -1,70 +1,5 @@
 #include "LIB_INC/zdo_header_for_thermometer.h"
 
-void calculation_of_temperature(void);
-void on_off_timer(zb_uint8_t state);
-
-static zb_uint8_t time;
-static float value_temperature;
-
-zb_callback_t temperature_callback;
-
-//------------------------------------------------------------------------
-
-void init_timer(void)
-{
-  TIM_TimeBaseInitTypeDef  t_init_struct;
-  NVIC_InitTypeDef t_nvic_init_struct;
-  
-  RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE);
-
-  t_init_struct.TIM_Period = 1000000 - 1;
-  t_init_struct.TIM_Prescaler = 84 - 1;
-  t_init_struct.TIM_ClockDivision = 0;
-  t_init_struct.TIM_CounterMode = TIM_CounterMode_Up;
-  TIM_TimeBaseInit(TIM2, &t_init_struct);
-  /*Interruption on up-dating*/
-  TIM_ITConfig(TIM2, TIM_IT_Update, ENABLE);
-  on_off_timer(1);
-
-  t_nvic_init_struct.NVIC_IRQChannel = TIM2_IRQn;
-  t_nvic_init_struct.NVIC_IRQChannelPreemptionPriority = 0;
-  t_nvic_init_struct.NVIC_IRQChannelSubPriority = 1;
-  t_nvic_init_struct.NVIC_IRQChannelCmd = ENABLE;
-  NVIC_Init(&t_nvic_init_struct);  
-}
-
-void on_off_timer(zb_uint8_t state)
-{
-  switch(state)
-    {
-    case TIM_CMD_DISABLE:
-      TIM_Cmd(TIM2, DISABLE);
-      break;
-    case TIM_CMD_ENABLE:
-      TIM_Cmd(TIM2, ENABLE);
-      break;
-    }
-}
-
-void timer_run_time(zb_uint8_t value)
-{
-  if(value == 30) // 30 seconds
-    {
-      time = 0;
-      schedule_callback_update_temperature(0);
-    } 
-}
-
-void TIM2_IRQHandler(void)
-{
-  if (TIM_GetITStatus(TIM2, TIM_IT_Update) != RESET)
-    {
-      TIM_ClearITPendingBit(TIM2, TIM_IT_Update);
-      time++;
-      timer_run_time(time);
-    }
-}
-
 //------------------------------------------------------------------------
 
 void init_adc(void) 
@@ -110,30 +45,15 @@ zb_uint16_t read_ADC1()
 
 //------------------------------------------------------------------------
 
-zb_uint8_t value_temperature_broadcast(void)
-{ 
-  return value_temperature;
-}
-
-void set_temperature_for_send(zb_callback_t func)
-{
-  temperature_callback = func;
-}
-
-void schedule_callback_update_temperature(zb_uint8_t param)
-{ 
-  calculation_of_temperature();
-  ZB_SCHEDULE_ALARM(temperature_callback, param, ZB_MILLISECONDS_TO_BEACON_INTERVAL(100));
-}
-
-void calculation_of_temperature(void)
+zb_uint8_t value_temperature(void)
 {
   // ADC Conversion to read temperature sensor
   // Temperature (in °C) = ((Vsense – V25) / Avg_Slope) + 25
   // Vsense = Voltage Reading From Temperature Sensor
   // V25 = Voltage at 25°C, for STM32F407 = 0.76V
   // Avg_Slope = 2.5mV/°C
-      
+  
+  float value_temperature;
   zb_uint16_t V_sense = read_ADC1();
       
   value_temperature = V_sense;
@@ -144,6 +64,8 @@ void calculation_of_temperature(void)
   value_temperature += (float)25.0; // Add the 25°C
   value_temperature -= (float)11.0; // Calibration_Value for measuring absolute temperature
   // out  value_temperature +- 1.5°C
+
+  return value_temperature;
 }
 
 

@@ -54,6 +54,7 @@ FNAME2 = zdo_start_zr
 
 FNAME3 = lcd_lib
 FNAME4 = thermometer_lib
+FNAME5 = button_lib
 
 SRCS1 = $(FNAME1).c 
 OBJS1 = ${SRCS1:.c=.o}
@@ -64,11 +65,13 @@ SRCS3 = $(FNAME3).c
 OBJS3 = ${SRCS3:.c=.o}
 SRCS4 = $(FNAME4).c
 OBJS4 = ${SRCS4:.c=.o}
+SRCS5 = $(FNAME5).c
+OBJS5 = ${SRCS5:.c=.o}
 
 #SRCS1 += $(STARTCODE)
 
 
-$(BIN)zdo_start_zc$(EXE) : $(OBJS1) $(OBJS3) $(LIBS)
+$(BIN)zdo_start_zc$(EXE) : $(OBJS1) $(OBJS3) $(OBJS5) $(LIBS)
 	$(LINK_BINARY)
 	$(OBJCOPY) -O ihex $(FNAME1) $(FNAME1).hex
 	$(OBJCOPY) -I ihex -O binary $(FNAME1).hex $(FNAME1).bin

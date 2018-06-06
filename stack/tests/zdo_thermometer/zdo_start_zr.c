@@ -51,6 +51,8 @@ PURPOSE: Test for ZC application written using ZDO.
 void zr_send_data(zb_uint8_t param);
 void zr_data_indication(zb_uint8_t param);
 void zr_send_temperature(zb_uint8_t param);
+void schedule_callback_response_on_request(zb_uint8_t param);
+void schedule_callback_update_temperature(zb_uint8_t param);
 
 zb_ieee_addr_t g_zr_addr = {0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb};
 
@@ -83,10 +85,7 @@ MAIN()
     ZB_AIB().aps_channel_mask = (1l << 22);
     
     init_adc();
-    init_timer();
   }
-
-  set_temperature_for_send(zr_send_temperature);
 
   if (zdo_dev_start() != RET_OK)
     {
@@ -109,8 +108,10 @@ void zb_zdo_startup_complete(zb_uint8_t param)
   if (buf->u.hdr.status == 0)
     {
       zb_af_set_data_indication(zr_data_indication);
+      ZB_SCHEDULE_ALARM(schedule_callback_update_temperature, param, 30 * ZB_TIME_ONE_SECOND); 
     }
-    zb_free_buf(buf);
+  
+  zb_free_buf(buf);
 }
 
 void zr_data_indication(zb_uint8_t param)
@@ -121,10 +122,10 @@ void zr_data_indication(zb_uint8_t param)
   /* Remove APS header from the packet */
   ZB_APS_HDR_CUT_P(buf, ptr);
   
-  if(*ptr == COMMAND_UPDATE_TEMPERATURE)
+  if(*ptr == COMMAND_REQUEST_UPDATE_TEMPERATURE)
     {
       ZB_BUF_CUT_LEFT(buf, 2, ptr);
-      schedule_callback_update_temperature(param);
+      schedule_callback_response_on_request(param);
     }  
 }
 
@@ -158,7 +159,21 @@ void zr_send_temperature(zb_uint8_t param)
       zb_uint8_t *ptr = ZB_BUF_BEGIN(buf);
       ZB_BUF_INITIAL_ALLOC(buf, 2, ptr);  
       ptr[0] = COMMAND_UPDATE_TEMPERATURE;
-      ptr[1] = value_temperature_broadcast();
+      ptr[1] = value_temperature();
       zr_send_data(param);
     }
 }
+
+void schedule_callback_response_on_request(zb_uint8_t param)
+{ 
+  ZB_SCHEDULE_CALLBACK(zr_send_temperature, param);
+}
+
+void schedule_callback_update_temperature(zb_uint8_t param)
+{
+  ZB_SCHEDULE_ALARM(zr_send_temperature, param, ZB_MILLISECONDS_TO_BEACON_INTERVAL(100));
+  
+  zb_uint8_t some_param = ZB_REF_FROM_BUF(zb_get_out_buf());
+  ZB_SCHEDULE_ALARM(schedule_callback_update_temperature, some_param, 30 * ZB_TIME_ONE_SECOND);
+}
+

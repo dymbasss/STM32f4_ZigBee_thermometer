@@ -7,22 +7,14 @@
 #include "zb_nwk.h"
 #include "zb_aps.h"
 #include "zb_zdo.h"
+
 #include "stm32f4xx_adc.h"
-#include "stm32f4xx_tim.h"
 
-#define COMMAND_UPDATE_TEMPERATURE 0x54 
+#define COMMAND_UPDATE_TEMPERATURE 0x54
+#define COMMAND_REQUEST_UPDATE_TEMPERATURE 0x55
 
-void set_temperature_for_send(zb_callback_t);
-void schedule_callback_update_temperature(zb_uint8_t);
-zb_uint8_t value_temperature_broadcast(void);
+zb_uint8_t value_temperature(void);
 
 void init_adc(void);
-void init_timer(void);
-
-typedef enum
-  {
-    TIM_CMD_DISABLE = 0,
-    TIM_CMD_ENABLE
-  } tim_cmd;
 
 #endif // !ZB_HEADER_FOR_THERMOMETER_H
