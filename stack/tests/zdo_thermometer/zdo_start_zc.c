@@ -54,7 +54,7 @@ zb_ieee_addr_t g_zc_addr = {0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa};
 void zc_data_indication(zb_uint8_t param);
 void zc_send_data(zb_uint8_t param);
 void zc_request_temperature(zb_uint8_t param);
-static void data_for_lcd(zb_uint8_t *ptr);
+void data_for_lcd(zb_uint8_t *ptr);
 
 MAIN()
 {
